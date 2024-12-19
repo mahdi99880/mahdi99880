@@ -1,0 +1,185 @@
+-- تعريف الخدمات
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+
+-- تتبع حالة اللعبة
+local gameStarted = false
+
+-- إعداد موقع البداية (Spawn Location)
+local spawnLocation = workspace:WaitForChild("SpawnLocation")
+
+-- إعداد واجهة المستخدم
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+-- زر "Play"
+local playButton = Instance.new("TextButton")
+playButton.Size = UDim2.new(0, 200, 0, 50)
+playButton.Position = UDim2.new(0.5, -100, 0.5, -25)
+playButton.Text = "Play"
+playButton.TextSize = 36
+playButton.TextColor3 = Color3.new(1, 1, 1)
+playButton.Font = Enum.Font.SourceSansBold
+playButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0) -- لون الزر الأساسي
+playButton.BorderSizePixel = 0
+playButton.Parent = screenGui
+
+-- تصميم الزر (إضافة زوايا مستديرة)
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 25) -- زوايا دائرية
+corner.Parent = playButton
+
+-- تأثير توهج (Glow Effect)
+local uiStroke = Instance.new("UIStroke")
+uiStroke.Thickness = 2
+uiStroke.Color = Color3.fromRGB(255, 255, 255)
+uiStroke.Transparency = 0.5 -- الشفافية
+uiStroke.Parent = playButton
+
+-- تأثير عند التمرير (Hover Effect)
+playButton.MouseEnter:Connect(function()
+	playButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- تغيير اللون عند التمرير
+	uiStroke.Color = Color3.fromRGB(255, 255, 0) -- تغيير لون التوهج
+end)
+
+playButton.MouseLeave:Connect(function()
+	playButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0) -- إعادة اللون الأصلي
+	uiStroke.Color = Color3.fromRGB(255, 255, 255) -- إعادة لون التوهج الأصلي
+end)
+
+-- إضافة تأثير ظل (Drop Shadow)
+local shadow = Instance.new("ImageLabel")
+shadow.Size = UDim2.new(1, 10, 1, 10)
+shadow.Position = UDim2.new(0, -5, 0, -5)
+shadow.BackgroundTransparency = 1
+shadow.Image = "rbxassetid://1316045217" -- صورة الظل
+shadow.ImageColor3 = Color3.new(0, 0, 0)
+shadow.ImageTransparency = 0.5 -- شفافية الظل
+shadow.ZIndex = playButton.ZIndex - 1 -- خلف الزر
+shadow.Parent = playButton
+
+-- نص "Spawning..."
+local spawningLabel = Instance.new("TextLabel")
+spawningLabel.Size = UDim2.new(0, 200, 0, 40)
+spawningLabel.Position = UDim2.new(0.5, -100, 0.5, -20)
+spawningLabel.Text = "Spawning"
+spawningLabel.TextSize = 36
+spawningLabel.TextColor3 = Color3.new(1, 1, 1)
+spawningLabel.Font = Enum.Font.SourceSansBold
+spawningLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+spawningLabel.BackgroundTransparency = 0.5
+spawningLabel.BorderSizePixel = 0
+spawningLabel.Visible = false
+spawningLabel.Parent = screenGui
+
+-- ضبابية الشاشة
+local blurEffect = Instance.new("BlurEffect")
+blurEffect.Size = 25
+blurEffect.Parent = camera
+
+-- صوت انتقال الكاميرا
+local cameraSound = Instance.new("Sound")
+cameraSound.SoundId = "rbxassetid://12345678" -- استبدل بالمعرف الخاص بالصوت
+cameraSound.Volume = 1
+cameraSound.Looped = true
+cameraSound.Parent = camera
+
+-- تعطيل حركة اللاعب
+local function disablePlayerMovement()
+	local character = player.Character or player.CharacterAdded:Wait()
+	local humanoid = character:WaitForChild("Humanoid")
+	humanoid.PlatformStand = true
+end
+
+disablePlayerMovement()
+
+-- إعداد الكاميرا
+local function setupCamera()
+	local character = player.Character or player.CharacterAdded:Wait()
+	local playerPosition = character:WaitForChild("HumanoidRootPart").Position
+	camera.CameraType = Enum.CameraType.Scriptable
+	camera.CFrame = CFrame.new(playerPosition + Vector3.new(140, 50, -50), playerPosition)
+end
+
+setupCamera()
+
+-- وظيفة بدء اللعبة
+local function startGame()
+	if gameStarted then return end -- التأكد من أن اللعبة لم تبدأ بالفعل
+
+	gameStarted = true
+
+	-- إخفاء زر "Play" وإظهار "Spawning..."
+	playButton.Visible = false
+	spawningLabel.Visible = true
+
+	-- التأثير التدريجي للنقاط الثلاث
+	task.spawn(function()
+		for i = 1, 6 do -- نقاط تظهر وتختفي 6 مرات
+			spawningLabel.Text = "Spawning" .. string.rep(".", (i % 3) + 1)
+			task.wait(0.5)
+		end
+	end)
+
+	-- انتظار ثانيتين ثم نقل اللاعب إلى موقع البداية
+	task.wait(2)
+	spawningLabel.Visible = false
+
+	-- تشغيل صوت الكاميرا
+	cameraSound:Play()
+
+	-- تكبير الكاميرا تدريجيًا إلى موقع الرسبون
+	local zoomDuration = 3 -- مدة التحريك
+	local zoomStartTime = tick()
+	local initialFOV = 70 -- القيمة الافتراضية للـ FieldOfView
+	local targetFOV = 30 -- القيمة المستهدفة للتكبير
+
+	local character = player.Character or player.CharacterAdded:Wait()
+	local startCFrame = camera.CFrame
+	local endCFrame = CFrame.new(spawnLocation.Position + Vector3.new(0, 5, -15), spawnLocation.Position)
+
+	while tick() - zoomStartTime < zoomDuration do
+		local alpha = (tick() - zoomStartTime) / zoomDuration
+		camera.CFrame = startCFrame:Lerp(endCFrame, alpha)
+		camera.FieldOfView = initialFOV + (targetFOV - initialFOV) * alpha
+		task.wait(0.03)
+	end
+
+	-- إيقاف صوت الكاميرا
+	cameraSound:Stop()
+
+	-- إزالة الضبابية
+	blurEffect:Destroy()
+	screenGui:Destroy()
+
+	-- تمكين حركة اللاعب
+	local humanoid = character:WaitForChild("Humanoid")
+	humanoid.PlatformStand = false
+
+	-- إعادة الكاميرا إلى الوضع الطبيعي
+	camera.CameraType = Enum.CameraType.Custom
+	camera.FieldOfView = initialFOV -- إعادة الـ FOV إلى القيمة الافتراضية
+
+	-- نقل اللاعب إلى موقع البداية
+	if spawnLocation then
+		character:SetPrimaryPartCFrame(spawnLocation.CFrame + Vector3.new(0, 3, 0))
+	end
+end
+
+-- ربط الوظيفة بالزر
+playButton.MouseButton1Click:Connect(startGame)
+
+-- التعامل مع إعادة إحياء اللاعب
+player.CharacterAdded:Connect(function(character)
+	if gameStarted then
+		character:WaitForChild("HumanoidRootPart").CFrame = spawnLocation.CFrame + Vector3.new(0, 3, 0)
+		local humanoid = character:WaitForChild("Humanoid")
+		humanoid.Died:Connect(function()
+			player.CharacterAdded:Wait():WaitForChild("HumanoidRootPart").CFrame = spawnLocation.CFrame + Vector3.new(0, 3, 0)
+		end)
+	else
+		disablePlayerMovement()
+		setupCamera()
+	end
+end)
