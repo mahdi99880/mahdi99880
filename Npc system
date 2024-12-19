@@ -1,0 +1,63 @@
+-- الحصول على أجزاء الشخصية
+local npc = script.Parent
+local humanoid = npc:FindFirstChild("Humanoid")
+local rootPart = npc:FindFirstChild("HumanoidRootPart")
+
+-- مدى رؤية NPC
+local detectionRadius = 30
+-- مدى الهجوم
+local attackRange = 5
+-- مقدار الضرر
+local damageAmount = 10
+-- سرعة NPC
+local followSpeed = 10
+
+-- تخزين وقت الهجوم الأخير
+local lastAttackTime = 0
+local attackCooldown = 1 -- وقت الانتظار بين الهجمات
+
+-- وظيفة للبحث عن أقرب لاعب
+local function getNearestPlayer()
+	local nearestPlayer = nil
+	local shortestDistance = detectionRadius
+
+	for _, player in pairs(game.Players:GetPlayers()) do
+		if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+			local playerRoot = player.Character.HumanoidRootPart
+			local distance = (playerRoot.Position - rootPart.Position).Magnitude
+			if distance < shortestDistance then
+				shortestDistance = distance
+				nearestPlayer = player
+			end
+		end
+	end
+
+	return nearestPlayer
+end
+
+-- متابعة اللاعب والهجوم
+while wait(0.1) do
+	local targetPlayer = getNearestPlayer()
+
+	if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("Humanoid") then
+		local playerHumanoid = targetPlayer.Character.Humanoid
+		local playerRoot = targetPlayer.Character.HumanoidRootPart
+
+		-- التحرك نحو اللاعب
+		local distance = (playerRoot.Position - rootPart.Position).Magnitude
+		if distance > attackRange then
+			humanoid:MoveTo(playerRoot.Position)
+		else
+			-- الهجوم على اللاعب
+			if tick() - lastAttackTime >= attackCooldown then -- التحقق من وقت الهجوم الأخير
+				if playerHumanoid.Health > 0 then
+					playerHumanoid:TakeDamage(damageAmount)
+					lastAttackTime = tick() -- تحديث وقت الهجوم الأخير
+				end
+			end
+			humanoid:MoveTo(rootPart.Position) -- إبقاء NPC في مكانه أثناء الهجوم
+		end
+	else
+		humanoid:MoveTo(rootPart.Position) -- يبقى NPC في مكانه إذا لم يجد لاعبًا
+	end
+end
