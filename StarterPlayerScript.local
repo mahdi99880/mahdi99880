@@ -1,0 +1,92 @@
+local player = game.Players.LocalPlayer
+local xpLabel = nil
+local levelLabel = nil
+local xpBar = nil
+
+-- إنشاء واجهة المستخدم (GUI) لعرض الـ XP و Level
+local function createXPBar()
+    -- إذا كانت الواجهة موجودة مسبقًا، لا نحتاج لإعادة إنشائها
+    if xpLabel then return end
+
+    -- إنشاء الـ ScreenGui
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "XPLevelUI"
+    screenGui.Parent = player:WaitForChild("PlayerGui")
+
+    -- إنشاء إطار لعرض الـ XP
+    local xpFrame = Instance.new("Frame")
+    xpFrame.Size = UDim2.new(0, 200, 0, 20) -- حجم أصغر
+    xpFrame.Position = UDim2.new(0, 10, 0, 10)
+    xpFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    xpFrame.BackgroundTransparency = 0.2
+    xpFrame.BorderSizePixel = 0
+    xpFrame.Parent = screenGui
+
+    -- حواف مستديرة للإطار
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = xpFrame
+
+    -- شريط الـ XP
+    xpBar = Instance.new("Frame")
+    xpBar.Size = UDim2.new(0, 0, 1, 0) -- سيتم تحديث الحجم بناءً على الـ XP
+    xpBar.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+    xpBar.BorderSizePixel = 0
+    xpBar.Parent = xpFrame
+
+    -- تأثير الحواف المستديرة للشريط
+    local xpBarCorner = Instance.new("UICorner")
+    xpBarCorner.CornerRadius = UDim.new(0, 8)
+    xpBarCorner.Parent = xpBar
+
+    -- نص لعرض الـ XP
+    xpLabel = Instance.new("TextLabel")
+    xpLabel.Size = UDim2.new(0, 200, 0, 20)
+    xpLabel.Position = UDim2.new(0, 0, 0, 30) -- تحريك النص للأسفل قليلاً
+    xpLabel.BackgroundTransparency = 1
+    xpLabel.Text = "XP: 0 / 100"
+    xpLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    xpLabel.TextSize = 14
+    xpLabel.Font = Enum.Font.Gotham
+    xpLabel.Parent = screenGui
+
+    -- نص لعرض الـ Level
+    levelLabel = Instance.new("TextLabel")
+    levelLabel.Size = UDim2.new(0, 200, 0, 40) -- تكبير حجم النص
+    levelLabel.Position = UDim2.new(0, 10, 0, -50) -- تحريك النص ليكون فوق الشريط
+    levelLabel.BackgroundTransparency = 1
+    levelLabel.Text = "Level: 1"
+    levelLabel.TextColor3 = Color3.fromRGB(255, 215, 0) -- لون ذهبي مميز
+    levelLabel.TextStrokeTransparency = 0.5 -- إضافة حدود خفيفة للنص
+    levelLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0) -- لون الحدود أسود
+    levelLabel.TextScaled = true -- تكبير النص تلقائيًا ليناسب الإطار
+    levelLabel.Font = Enum.Font.GothamBold -- خط أكثر وضوحًا
+    levelLabel.Parent = screenGui
+end
+
+-- تحديث واجهة المستخدم بناءً على الـ XP و الـ Level
+local function updateXPDisplay()
+    createXPBar() -- إنشاء الواجهة إذا لم تكن موجودة
+    local leaderstats = player:FindFirstChild("leaderstats")
+    if leaderstats then
+        local xp = leaderstats:FindFirstChild("XP")
+        local level = leaderstats:FindFirstChild("Level")
+        if xp and level then
+            -- تحديث النصوص
+            xpLabel.Text = "XP: " .. xp.Value .. " / 100"
+            levelLabel.Text = "Level: " .. level.Value
+
+            -- حساب نسبة التقدم داخل المستوى
+            local progress = xp.Value / 100
+            xpBar:TweenSize(UDim2.new(progress, 0, 1, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.3, true)
+        end
+    end
+end
+
+-- متابعة تغييرات الـ XP و الـ Level
+local leaderstats = player:WaitForChild("leaderstats")
+leaderstats:WaitForChild("XP").Changed:Connect(updateXPDisplay)
+leaderstats:WaitForChild("Level").Changed:Connect(updateXPDisplay)
+
+-- تحديث الـ XP و الـ Level عند بداية اللعبة
+updateXPDisplay()
