@@ -1,0 +1,131 @@
+-- تعريف الخدمات
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+-- اللاعب والشخصية
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+local humanoid = character:WaitForChild("Humanoid")
+
+-- إعدادات الشفت لوك
+local shiftLockEnabled = false
+local crosshair
+local mobileButton -- الزر الخاص بالموبايل
+
+-- وظيفة لإضافة العلامة الدائرية المجوفة
+local function addCrosshair()
+	local playerGui = player:WaitForChild("PlayerGui")
+
+	-- إنشاء ScreenGui فقط إذا لم يكن موجودًا
+	local screenGui = playerGui:FindFirstChild("ShiftLockUI")
+	if not screenGui then
+		screenGui = Instance.new("ScreenGui")
+		screenGui.Name = "ShiftLockUI"
+		screenGui.ResetOnSpawn = false
+		screenGui.Parent = playerGui
+	end
+
+	-- إنشاء العلامة (Frame)
+	crosshair = Instance.new("Frame")
+	crosshair.Size = UDim2.new(0, 10, 0, 10) -- حجم العلامة
+	crosshair.Position = UDim2.new(0.5, -10, 0.48, -75) -- في منتصف الشاشة وأعلى قليلًا
+	crosshair.BackgroundTransparency = 1 -- جعل الخلفية شفافة
+	crosshair.Parent = screenGui
+
+	-- إضافة UIStroke لجعل العلامة دائرية ومجوفة
+	local uiStroke = Instance.new("UIStroke")
+	uiStroke.Thickness = 2 -- سمك الإطار
+	uiStroke.Color = Color3.new(1, 1, 1) -- اللون الأبيض
+	uiStroke.Parent = crosshair
+
+	-- إضافة UICorner لجعل العلامة دائرية
+	local uiCorner = Instance.new("UICorner")
+	uiCorner.CornerRadius = UDim.new(1, 0) -- جعل الزوايا دائرية بالكامل
+	uiCorner.Parent = crosshair
+end
+
+-- وظيفة لإزالة العلامة
+local function removeCrosshair()
+	if crosshair then
+		crosshair.Parent:Destroy()
+		crosshair = nil
+	end
+end
+
+-- وظيفة لتفعيل/إلغاء الشفت لوك
+local function toggleShiftLock()
+	shiftLockEnabled = not shiftLockEnabled
+
+	if shiftLockEnabled then
+		-- تعطيل الدوران التلقائي للشخصية
+		humanoid.AutoRotate = false
+
+		-- إضافة العلامة إذا لم تكن موجودة
+		if not crosshair then
+			addCrosshair()
+		end
+	else
+		-- إعادة الدوران التلقائي للشخصية
+		humanoid.AutoRotate = true
+
+		-- إزالة العلامة
+		removeCrosshair()
+	end
+end
+
+-- تحديث اتجاه اللاعب ليبقى للأمام
+RunService.RenderStepped:Connect(function()
+	if shiftLockEnabled and humanoidRootPart then
+		local cameraLookVector = workspace.CurrentCamera.CFrame.LookVector
+		humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position, humanoidRootPart.Position + Vector3.new(cameraLookVector.X, 0, cameraLookVector.Z))
+	end
+end)
+
+-- إضافة زر للموبايل
+local function addMobileButton()
+	local playerGui = player:WaitForChild("PlayerGui")
+
+	-- تحقق إذا كان ScreenGui موجودًا مسبقًا
+	local screenGui = playerGui:FindFirstChild("MobileButtonUI")
+	if not screenGui then
+		-- إنشاء ScreenGui فقط إذا لم يكن موجودًا
+		screenGui = Instance.new("ScreenGui")
+		screenGui.Name = "MobileButtonUI"
+		screenGui.ResetOnSpawn = false
+		screenGui.Parent = playerGui
+	end
+
+	-- إنشاء زر (TextButton)
+	mobileButton = Instance.new("TextButton")
+	mobileButton.Size = UDim2.new(0, 90, 0, 30) -- حجم الزر
+	mobileButton.Position = UDim2.new(1.02, -105, 1.05, -250) -- في الزاوية اليمنى السفلية
+	mobileButton.Text = "Shift Lock" -- نص الزر
+	mobileButton.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2) -- لون الخلفية
+	mobileButton.TextColor3 = Color3.new(1, 1, 1) -- لون النص
+	mobileButton.Font = Enum.Font.SourceSansBold -- نوع الخط
+	mobileButton.TextScaled = true -- تكبير النص
+	mobileButton.Parent = screenGui
+
+	-- تشغيل الوظيفة عند الضغط على الزر
+	mobileButton.MouseButton1Click:Connect(function()
+		toggleShiftLock()
+	end)
+end
+
+-- مراقبة ضغط زر Shift
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if not gameProcessed and input.KeyCode == Enum.KeyCode.LeftShift then
+		toggleShiftLock()
+	end
+end)
+
+-- إضافة زر الموبايل عند بدء اللعبة
+addMobileButton()
+
+-- التعامل مع إعادة إحياء اللاعب
+player.CharacterAdded:Connect(function()
+	-- التأكد من أن الزر يظل يعمل عند إعادة إحياء اللاعب
+	addMobileButton() -- إعادة إضافة الزر عند إعادة إحياء اللاعب
+end)
