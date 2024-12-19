@@ -1,0 +1,32 @@
+game.Players.PlayerAdded:Connect(function(player)
+    -- إنشاء leaderstats عندما ينضم اللاعب
+    local leaderstats = Instance.new("Folder")
+    leaderstats.Name = "leaderstats"
+    leaderstats.Parent = player
+
+    -- إنشاء خاصية XP
+    local xp = Instance.new("IntValue")
+    xp.Name = "XP"
+    xp.Value = 0 -- بداية من 0 XP
+    xp.Parent = leaderstats
+
+    -- إنشاء خاصية Level
+    local level = Instance.new("IntValue")
+    level.Name = "Level"
+    level.Value = 1 -- البداية من المستوى 1
+    level.Parent = leaderstats
+
+    -- زيادة XP كل ثانية بمقدار 10
+    task.spawn(function()
+        while true do
+            wait(1) -- الانتظار لمدة ثانية
+            xp.Value = xp.Value + 10 -- زيادة XP بمقدار 10
+
+            -- إذا وصل الـ XP إلى 100 أو أكثر
+            while xp.Value >= 100 do
+                xp.Value = xp.Value - 100 -- خصم 100 XP
+                level.Value = level.Value + 1 -- زيادة المستوى
+            end
+        end
+    end)
+end)
